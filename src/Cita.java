@@ -11,40 +11,51 @@ import java.io.Serializable;
         private final LocalTime inicio;
         private final int duracion;
 
-        private Cita(String cliente, LocalDate fecha, LocalTime inicio, int duracion) {
-            this.cliente = cliente;
-            this.fecha = fecha;
-            this.inicio = inicio;
-            this.duracion = duracion;
-        }
+       protected Cita(String cliente, LocalDate fecha, LocalTime inicio, int duracion)
+        throws ArgumentoException {
+    if (cliente == null || cliente.isBlank()) {
+        throw new ArgumentoException("El cliente no puede estar vacío");
+    }
+    if (fecha == null) {
+        throw new ArgumentoException("La fecha no puede ser null");
+    }
+    if (inicio == null) {
+        throw new ArgumentoException("La hora de inicio no puede ser null");
+    }
+    if (duracion <= 0) {
+        throw new ArgumentoException("La duración debe ser positiva");
+    }
+    this.cliente = cliente;
+    this.fecha = fecha;
+    this.inicio = inicio;
+    this.duracion = duracion;
+}
+        public abstract Cita conInicio(LocalTime nuevoInicio) throws ArgumentoException;
 
 
-        // ---------------------------------------------------------------- consultas
-
-        public String getCliente() {
+        public final String getCliente() {
             return cliente;
         }
 
-        public LocalDate getFecha() {
+        public final LocalDate getFecha() {
             return fecha;
         }
 
-        public LocalTime getInicio() {
+        public final LocalTime getInicio() {
             return inicio;
         }
 
-        public int getDuracion() {
+        public final int getDuracion() {
             return duracion;
         }
 
-        /** fin(c) = getInicio(c) + getDuracion(c); cumple inicio < fin ≤ CIERRE. */
-        public LocalTime fin() {
+        public final LocalTime getFin() {
             return inicio.plusMinutes(duracion);
         }
 
         @Override
         public String toString() {
-            return cliente + " " + fecha + " " + inicio + "-" + fin();
+            return cliente + " " + fecha + " " + inicio + "-" + getFin();
         }
     }
 

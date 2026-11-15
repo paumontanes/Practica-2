@@ -215,9 +215,9 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
      * Pre: cierto.
      * Post: r = |a.citas|; la agenda no cambia.
      */
-    public int numCitas() {
-        return citas.size();
-    }
+    public int getNumCitas() {
+    return citas.size();
+}
 
     /**
      * citaEn(a, i) → Cita

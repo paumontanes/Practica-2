@@ -281,19 +281,20 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * citaDe(a, cliente, fecha) → Cita
-     * Pre: cliente no vacío ∧ fecha ≠ null ∧ tieneCita(cliente, fecha).
-     * Post: r es la única cita de a con mismoCliente(r.cliente, cliente) ∧ r.fecha = fecha.
-     *
-     * @throws IllegalArgumentException si se incumple la precondición
-     */
+ * Devuelve la cita del cliente en la fecha indicada.
+ *
+ * @throws ArgumentoException si el cliente es nulo o está vacío,
+ *         la fecha es nula o el cliente no tiene cita ese día
+ */
     public Cita getCitaDe(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
+
         int pos = posicionDe(cliente, fecha);
         if (pos < 0) {
-            return null;
+            throw new ArgumentoException("No hay cita de " + cliente + " el " + fecha);
         }
+
         return citas.get(pos);
     }
 

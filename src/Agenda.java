@@ -9,25 +9,31 @@ import java.io.Serializable;
 /**
  * TAD Agenda de citas de una clínica veterinaria.
  *
- * Estado: citas = ⟨c0, ..., cn-1⟩, siempre en orden cronológico y sin solapamientos.
+ * Estado: un horario (apertura, cierre) y una secuencia de citas
+ * citas = ⟨c0, ..., cn-1⟩, siempre en orden cronológico y sin solapamientos.
+ * La agenda abre todos los días: el cierre de los domingos es una norma de la
+ * clínica, no de la agenda.
  *
  * InvAgenda ≡
- *   1. ∀ i ∈ [0, n): InvCita(citas[i])
+ *   1. apertura < cierre ∧ ∀ i ∈ [0, n): apertura ≤ citas[i].inicio ∧ citas[i].fin ≤ cierre
+ *      (InvCita ya garantiza cliente no vacío, fecha e inicio no null y duración > 0)
  *   2. ∀ i ∈ [0, n-1): citas[i].fecha < citas[i+1].fecha
- *        ∨ (citas[i].fecha = citas[i+1].fecha ∧ fin(citas[i]) ≤ citas[i+1].inicio)
+ *        ∨ (citas[i].fecha = citas[i+1].fecha ∧ citas[i].fin ≤ citas[i+1].inicio)
  *   3. ∀ i < j: citas[i].fecha = citas[j].fecha ⇒ ¬mismoCliente(citas[i].cliente, citas[j].cliente)
  *
- * Decisiones de diseño (Fase 0):
+ * Decisiones de diseño:
  *   D1. cancelar y retrasar identifican la cita por (cliente, fecha). Por la condición 3 del
  *       invariante, esa pareja identifica siempre una sola cita.
  *   D2. mismoCliente(a, b) ≡ a y b son iguales ignorando mayúsculas y minúsculas
  *       («Ana García» y «ana garcía» son el mismo cliente).
- *   D3. Retrasar una cita que pisaría a la siguiente del mismo día NO es un error: retrasar
- *       devuelve false y la agenda no cambia. No se mueven las citas siguientes.
+ *   D3. Retrasar una cita que pisaría a la siguiente del mismo día, o que terminaría después
+ *       del cierre, es un error: retrasar lanza ArgumentoException y la agenda no cambia.
+ *       No se mueven las citas siguientes.
  *
- * Convención de errores: IllegalArgumentException si se incumple una precondición;
- * IndexOutOfBoundsException para posiciones fuera de rango. Las operaciones reservar y
- * retrasar devuelven false cuando son correctas pero no se pueden realizar (no hay hueco).
+ * Convención de errores: ArgumentoException (comprobada) cuando un argumento es null o
+ * imposible, y cuando la operación no se puede realizar (cita fuera de horario, hueco
+ * ocupado, cliente con otra cita ese día, cita inexistente, posición fuera de rango).
+ * Si una operación lanza la excepción, la agenda no cambia.
  * Ningún método de esta clase escribe por pantalla.
  */
 public class Agenda implements Serializable {
@@ -43,12 +49,14 @@ public class Agenda implements Serializable {
         return a != null && a.equalsIgnoreCase(b);
     }
 
+    /** Lanza ArgumentoException si el cliente es null o está vacío. */
 private static void exigirCliente(String cliente) throws ArgumentoException {
         if (cliente == null || cliente.isBlank()) {
             throw new ArgumentoException("El cliente no puede estar vacío");
         }
     }
 
+    /** Lanza ArgumentoException si la fecha es null. */
     private static void exigirFecha(LocalDate fecha) throws ArgumentoException {
         if (fecha == null) {
             throw new ArgumentoException("La fecha no puede ser null");
@@ -69,10 +77,11 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
 
     /**
      * Hora más temprana a la que empieza un hueco de duración dada en la fecha,
-     * o null si no hay ninguno (o el día no es laborable).
+     * o null si el día no tiene ninguno. Recorre las citas del día con un cursor que
+     * empieza en la apertura y mide el espacio hasta cada cita y, al final, hasta el cierre.
      */
     private LocalTime buscarHueco(LocalDate fecha, int duracion) {
-      
+
         LocalTime cursor = apertura;
         for (Cita c : citas) {
             if (!c.getFecha().equals(fecha)) {
@@ -92,9 +101,14 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     // ---------------------------------------------------------------- constructor
 
     /**
-     * Agenda() → Agenda
-     * Pre: cierto.
-     * Post: citas = ⟨⟩ (numCitas = 0). InvAgenda se cumple trivialmente.
+     * Agenda(apertura, cierre) → Agenda
+     * Pre: apertura y cierre no son null y apertura < cierre.
+     * Post: la agenda tiene ese horario y no tiene citas (getNumCitas = 0).
+     *       InvAgenda se cumple trivialmente.
+     *
+     * @param apertura hora de apertura
+     * @param cierre   hora de cierre
+     * @throws ArgumentoException si se incumple la precondición
      */
     public Agenda(LocalTime apertura, LocalTime cierre) throws ArgumentoException {
     if (apertura == null || cierre == null || !apertura.isBefore(cierre)) {
@@ -105,30 +119,42 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     this.citas = new ArrayList<>();
 }
 
+    /**
+     * getApertura() → Hora
+     * Pre: cierto. Post: devuelve la hora de apertura de la agenda; la agenda no cambia.
+     */
     public LocalTime getApertura() {
         return apertura;
     }
 
+    /**
+     * getCierre() → Hora
+     * Pre: cierto. Post: devuelve la hora de cierre de la agenda; la agenda no cambia.
+     */
     public LocalTime getCierre() {
         return cierre;
     }
 
+    /**
+     * getJornada() → Entero
+     * Pre: cierto. Post: devuelve los minutos entre la apertura y el cierre; la agenda no cambia.
+     */
     public int getJornada() {
         return (int) ChronoUnit.MINUTES.between(apertura, cierre);
     }
-    
+
 
     // ---------------------------------------------------------------- modificadoras
 
     /**
-     * reservar(a, cliente, fecha, inicio, duracion) → Booleano
-     * Pre: cliente no vacío ∧ intervaloValido(fecha, inicio, duracion).
-     * Post: si estaLibre(fecha, inicio, duracion) ∧ ¬tieneCita(cliente, fecha):
-     *         devuelve true y la agenda contiene además la cita (cliente, fecha, inicio, duracion)
-     *         en su lugar cronológico; el resto de citas no cambia.
-     *       En otro caso devuelve false y la agenda no cambia.
+     * reservar(c)
+     * Pre: c no es null ∧ apertura ≤ c.inicio ∧ c.fin ≤ cierre ∧
+     *      ¬tieneCita(c.cliente, c.fecha) ∧ estaLibre(c.fecha, c.inicio, c.duracion).
+     * Post: la agenda contiene además la cita c en su lugar cronológico; el resto de
+     *       citas no cambia y conserva su orden.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @param c cita ya creada que se quiere reservar
+     * @throws ArgumentoException si se incumple la precondición (la agenda no cambia)
      */
   public void reservar(Cita c) throws ArgumentoException {
         if (c == null) {
@@ -157,12 +183,12 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * cancelar(a, cliente, fecha)
-     * Pre: cliente no vacío ∧ fecha ≠ null ∧ tieneCita(cliente, fecha).
+     * cancelar(cliente, fecha)
+     * Pre: cliente no vacío ∧ fecha no es null ∧ tieneCita(cliente, fecha).
      * Post: la agenda es la anterior sin la cita de (cliente, fecha); el resto de citas
      *       conserva el orden y el hueco queda libre.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @throws ArgumentoException si se incumple la precondición (la agenda no cambia)
      */
   public void cancelar(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
@@ -175,15 +201,14 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * retrasar(a, cliente, fecha, minutos) → Booleano
-     * Pre: cliente no vacío ∧ fecha ≠ null ∧ minutos > 0 ∧ tieneCita(cliente, fecha).
-     * Post: sea c la cita de (cliente, fecha). Si c.inicio + minutos + c.duracion ≤ CIERRE y,
-     *       si hay una cita siguiente el mismo día, c.fin + minutos ≤ siguiente.inicio:
-     *         devuelve true y c se sustituye por una cita de mismo cliente, fecha y duración
-     *         con inicio c.inicio + minutos; el resto no cambia.
-     *       En otro caso (decisión D3) devuelve false y la agenda no cambia.
+     * retrasar(cliente, fecha, minutos)
+     * Pre: cliente no vacío ∧ fecha no es null ∧ minutos > 0 ∧ tieneCita(cliente, fecha) ∧
+     *      sea c la cita de (cliente, fecha): c.fin + minutos ≤ cierre y, si hay una cita
+     *      siguiente el mismo día, c.fin + minutos ≤ siguiente.inicio (decisión D3).
+     * Post: c se sustituye por la cita c.conInicio(c.inicio + minutos), que es del mismo tipo
+     *       y tiene el mismo cliente, fecha y duración que c; el resto de citas no cambia.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @throws ArgumentoException si se incumple la precondición (la agenda no cambia)
      */
   public void retrasar(String cliente, LocalDate fecha, int minutos) throws ArgumentoException {
         exigirCliente(cliente);
@@ -200,7 +225,7 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
         throw new ArgumentoException("La cita retrasada queda fuera del horario");
         }
     Cita retrasada = c.conInicio(c.getInicio().plusMinutes(minutos));
-      
+
         if (pos + 1 < citas.size() && citas.get(pos + 1).getFecha().equals(fecha)
                 && retrasada.getFin().isAfter(citas.get(pos + 1).getInicio())) {
             throw new ArgumentoException("La cita retrasada se solapa con la siguiente");
@@ -211,21 +236,21 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     // ---------------------------------------------------------------- consultas básicas
 
     /**
-     * numCitas(a) → Entero
+     * getNumCitas() → Entero
      * Pre: cierto.
-     * Post: r = |a.citas|; la agenda no cambia.
+     * Post: r = |citas|; la agenda no cambia.
      */
     public int getNumCitas() {
     return citas.size();
 }
 
     /**
-     * citaEn(a, i) → Cita
-     * Pre: 0 ≤ i < numCitas(a).
-     * Post: r = a.citas[i]; la agenda no cambia.
+     * getCitaEn(i) → Cita
+     * Pre: 0 ≤ i < getNumCitas().
+     * Post: r = citas[i]; la agenda no cambia.
      * Devolver la cita es seguro porque Cita es inmutable.
      *
-     * @throws IndexOutOfBoundsException si i está fuera de rango
+     * @throws ArgumentoException si i está fuera de rango
      */
    public Cita getCitaEn(int i) throws ArgumentoException {
         if (i < 0 || i >= citas.size()) {
@@ -235,12 +260,12 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * citasDel(a, fecha) → Secuencia de Cita
-     * Pre: fecha ≠ null.
-     * Post: r contiene exactamente las citas de a con esa fecha, en el mismo orden que en a;
-     *       la agenda no cambia. Se devuelve una copia: modificarla no afecta a la agenda.
+     * getCitasDel(fecha) → ArrayList de Cita
+     * Pre: fecha no es null.
+     * Post: r contiene exactamente las citas con esa fecha, en el mismo orden que en la agenda;
+     *       la agenda no cambia. Se devuelve una lista nueva: modificarla no afecta a la agenda.
      *
-     * @throws IllegalArgumentException si fecha es null
+     * @throws ArgumentoException si fecha es null
      */
    public ArrayList<Cita> getCitasDel(LocalDate fecha) throws ArgumentoException {
         exigirFecha(fecha);
@@ -252,6 +277,14 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
         }
         return resultado;
     }
+    /**
+     * getCitasEntre(desde, hasta) → ArrayList de Cita
+     * Pre: desde y hasta no son null ∧ desde ≤ hasta.
+     * Post: r contiene exactamente las citas con fecha en [desde, hasta] (ambas incluidas),
+     *       en el mismo orden que en la agenda; la agenda no cambia. Se devuelve una lista nueva.
+     *
+     * @throws ArgumentoException si se incumple la precondición
+     */
     public ArrayList<Cita> getCitasEntre(LocalDate desde, LocalDate hasta) throws ArgumentoException {
         exigirFecha(desde);
         exigirFecha(hasta);
@@ -268,11 +301,12 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * tieneCita(a, cliente, fecha) → Booleano
-     * Pre: cliente no vacío ∧ fecha ≠ null.
-     * Post: r ⇔ ∃ i: mismoCliente(citas[i].cliente, cliente) ∧ citas[i].fecha = fecha.
+     * tieneCita(cliente, fecha) → Booleano
+     * Pre: cliente no vacío ∧ fecha no es null.
+     * Post: r ⇔ ∃ i: mismoCliente(citas[i].cliente, cliente) ∧ citas[i].fecha = fecha;
+     *       la agenda no cambia.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @throws ArgumentoException si se incumple la precondición
      */
     public boolean tieneCita(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
@@ -281,11 +315,13 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
- * Devuelve la cita del cliente en la fecha indicada.
- *
- * @throws ArgumentoException si el cliente es nulo o está vacío,
- *         la fecha es nula o el cliente no tiene cita ese día
- */
+     * getCitaDe(cliente, fecha) → Cita
+     * Pre: cliente no vacío ∧ fecha no es null ∧ tieneCita(cliente, fecha).
+     * Post: r es la única cita con mismoCliente(r.cliente, cliente) ∧ r.fecha = fecha;
+     *       la agenda no cambia.
+     *
+     * @throws ArgumentoException si se incumple la precondición
+     */
     public Cita getCitaDe(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
@@ -299,11 +335,11 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * numCitasDe(a, cliente) → Entero
+     * numCitasDe(cliente) → Entero
      * Pre: cliente no vacío.
-     * Post: r = |{ i : mismoCliente(citas[i].cliente, cliente) }|.
+     * Post: r = |{ i : mismoCliente(citas[i].cliente, cliente) }|; la agenda no cambia.
      *
-     * @throws IllegalArgumentException si el cliente es vacío
+     * @throws ArgumentoException si el cliente es null o está vacío
      */
     public int numCitasDe(String cliente) throws ArgumentoException {
     exigirCliente(cliente);
@@ -320,10 +356,13 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     // ---------------------------------------------------------------- huecos
 
     /**
-     * estaLibre(a, fecha, inicio, duracion) → Booleano
-     * Pre: cierto (operación total).
-     * Post: r ⇔ intervaloValido(fecha, inicio, duracion) ∧
-     *       ∀ i: citas[i].fecha = fecha ⇒ (fin(citas[i]) ≤ inicio ∨ inicio + duracion ≤ citas[i].inicio).
+     * estaLibre(fecha, h, d) → Booleano
+     * Pre: fecha no es null ∧ h no es null ∧ d > 0.
+     * Post: r ⇔ apertura ≤ h ∧ h + d ≤ cierre ∧
+     *       ∀ i: citas[i].fecha = fecha ⇒ (citas[i].fin ≤ h ∨ h + d ≤ citas[i].inicio);
+     *       la agenda no cambia.
+     *
+     * @throws ArgumentoException si se incumple la precondición
      */
     public boolean estaLibre(LocalDate fecha, LocalTime h, int d) throws ArgumentoException {
         exigirFecha(fecha);
@@ -344,11 +383,11 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * hayHueco(a, fecha, duracion) → Booleano
-     * Pre: fecha ≠ null ∧ duracion > 0.
-     * Post: r ⇔ ∃ h: estaLibre(fecha, h, duracion).
+     * hayHueco(fecha, d) → Booleano
+     * Pre: fecha no es null ∧ d > 0.
+     * Post: r ⇔ ∃ h: estaLibre(fecha, h, d); la agenda no cambia.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @throws ArgumentoException si se incumple la precondición
      */
    public boolean hayHueco(LocalDate fecha, int d) throws ArgumentoException {
         exigirFecha(fecha);
@@ -357,12 +396,13 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
- * Devuelve la primera hora con un hueco de la duración indicada
- * en la fecha recibida.
- *
- * @throws ArgumentoException si la fecha es nula, la duración
- *         no es positiva o no existe un hueco de esa duración
- */
+     * primerHueco(fecha, d) → Hora
+     * Pre: fecha no es null ∧ d > 0 ∧ hayHueco(fecha, d).
+     * Post: r es la menor hora h tal que estaLibre(fecha, h, d); la agenda no cambia.
+     *
+     * @throws ArgumentoException si se incumple la precondición (la fecha es null, la
+     *         duración no es positiva o no existe un hueco de esa duración)
+     */
 public LocalTime primerHueco(LocalDate fecha, int d) throws ArgumentoException {
     exigirFecha(fecha);
     exigirDuracion(d);
@@ -375,12 +415,14 @@ public LocalTime primerHueco(LocalDate fecha, int d) throws ArgumentoException {
 }
 
     /**
- * Busca el primer día con un hueco de la duración indicada,
- * empezando por la fecha recibida.
- *
- * @throws ArgumentoException si la fecha es nula, la duración
- *         no es positiva o supera la jornada de la agenda
- */
+     * primerDiaConHueco(fecha, duracion) → Fecha
+     * Pre: fecha no es null ∧ 0 < duracion ≤ getJornada().
+     * Post: r es la menor fecha f ≥ fecha tal que hayHueco(f, duracion); la agenda no cambia.
+     *       (Siempre existe: la agenda es finita y duracion cabe en una jornada.)
+     *
+     * @throws ArgumentoException si se incumple la precondición (la fecha es null, la
+     *         duración no es positiva o supera la jornada de la agenda)
+     */
 public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws ArgumentoException {
     exigirFecha(fecha);
     exigirDuracion(duracion);
@@ -397,11 +439,12 @@ public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws Argumen
 }
 
     /**
-     * tiempoLibre(a, fecha) → Entero
-     * Pre: fecha ≠ null ∧ laborable(fecha).
-     * Post: r = JORNADA − Σ { citas[i].duracion : citas[i].fecha = fecha }.
+     * getTiempoLibre(fecha) → Entero
+     * Pre: fecha no es null.
+     * Post: r = getJornada() − Σ { citas[i].duracion : citas[i].fecha = fecha };
+     *       la agenda no cambia.
      *
-     * @throws IllegalArgumentException si se incumple la precondición
+     * @throws ArgumentoException si fecha es null
      */
  public int getTiempoLibre(LocalDate fecha) throws ArgumentoException {
         exigirFecha(fecha);
@@ -414,6 +457,7 @@ public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws Argumen
         return getJornada() - ocupado;
     }
 
+     /** Lanza ArgumentoException si la duración no es positiva. */
      private static void exigirDuracion(int duracion) throws ArgumentoException {
         if (duracion <= 0) {
             throw new ArgumentoException("La duración debe ser positiva");
@@ -423,7 +467,9 @@ public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws Argumen
     // ---------------------------------------------------------------- invariante y texto
 
     /**
-     * Comprueba InvAgenda. Se usa en las pruebas; no modifica la agenda.
+     * Comprueba InvAgenda: cada cita está dentro del horario, las citas están en orden
+     * cronológico sin solaparse y ningún cliente tiene dos citas el mismo día.
+     * Se usa en las pruebas (solo es visible dentro del paquete); no modifica la agenda.
      */
    boolean invariante() {
         for (int i = 0; i < citas.size(); i++) {
@@ -450,6 +496,13 @@ public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws Argumen
         return true;
     }
 
+    /**
+     * toString() → Cadena
+     * Pre: cierto.
+     * Post: texto con las citas agrupadas por día: una cabecera con la fecha y el día de la
+     *       semana, y debajo cada cita con su hora de inicio, fin y cliente. Si no hay citas
+     *       devuelve "Agenda vacía". La agenda no cambia.
+     */
     @Override
     public String toString() {
         if (citas.isEmpty()) {

@@ -27,6 +27,19 @@ public class PruebaAgenda {
         agenda.reservar(c2);
         agenda.reservar(cDom);
 
+        /**
+         * Comprueba que no se pueden crear citas en domingo.
+         */
+        boolean falloDomingo = false;
+
+        try {
+            new CitaPrueba("M003", domingo, LocalTime.of(11, 0), 30);
+        } catch (ArgumentoException e) {
+            falloDomingo = true;
+        }
+
+        assert falloDomingo : "Debería rechazar citas en domingo";
+
         assert agenda.invariante() : "Fallo en invariante";
         assert agenda.getNumCitas() == 3 : "Error en getNumCitas";
         assert agenda.getCitasEntre(lunes, domingo).size() == 3 : "Error en getCitasEntre";

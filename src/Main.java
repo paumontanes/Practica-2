@@ -21,7 +21,7 @@ public class Main {
         }
     }
 
-    static void esperaExcepcion(String descripcion, Class<? extends Throwable> tipo, Runnable codigo) {
+    static void esperaExcepcion(String descripcion, Class<? extends Throwable> tipo, OperacionDePrueba codigo) {
         total++;
         try {
             codigo.run();

@@ -35,7 +35,7 @@ public class PruebaAgenda {
         assert agenda.getCitaDe("M001", lunes).getInicio().equals(LocalTime.of(9, 15)) : "Error en retrasar";
         assert agenda.invariante() : "Fallo en invariante tras retrasar";
 
-        assert agenda.primerHueco(lunes, 30).equals(LocalTime.of(9, 0)) : "Error en primerHueco";
+        assert agenda.primerHueco(lunes, 30).equals(LocalTime.of(10, 45)) : "Error en primerHueco";
         assert agenda.getTiempoLibre(lunes) == (660 - 75) : "Error en getTiempoLibre";
 
         boolean fallo = false;

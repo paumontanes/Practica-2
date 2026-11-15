@@ -4,6 +4,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * TAD Agenda de citas de una clínica veterinaria.
@@ -29,9 +30,11 @@ import java.util.List;
  * retrasar devuelven false cuando son correctas pero no se pueden realizar (no hay hueco).
  * Ningún método de esta clase escribe por pantalla.
  */
-public class Agenda {
+public class Agenda implements Serializable {
 
     private final List<Cita> citas;
+    private final LocalTime cierre;
+    private final LocalTime apertura;
 
     // ---------------------------------------------------------------- auxiliares
 
@@ -68,10 +71,8 @@ public class Agenda {
      * o null si no hay ninguno (o el día no es laborable).
      */
     private LocalTime buscarHueco(LocalDate fecha, int duracion) {
-        if (!Cita.laborable(fecha)) {
-            return null;
-        }
-        LocalTime cursor = Cita.APERTURA;
+      
+        LocalTime cursor = apertura;
         for (Cita c : citas) {
             if (!c.getFecha().equals(fecha)) {
                 continue;
@@ -79,9 +80,9 @@ public class Agenda {
             if (ChronoUnit.MINUTES.between(cursor, c.getInicio()) >= duracion) {
                 return cursor;
             }
-            cursor = c.fin();
+            cursor = c.getFin();
         }
-        if (ChronoUnit.MINUTES.between(cursor, Cita.CIERRE) >= duracion) {
+        if (ChronoUnit.MINUTES.between(cursor, cierre) >= duracion) {
             return cursor;
         }
         return null;
@@ -94,9 +95,27 @@ public class Agenda {
      * Pre: cierto.
      * Post: citas = ⟨⟩ (numCitas = 0). InvAgenda se cumple trivialmente.
      */
-    public Agenda() {
+    public Agenda(LocalTime apertura, LocalTime cierre) {
+        if (apertura == null || cierre == null || !apertura.isBefore(cierre)) {
+            throw new IllegalArgumentException("Horario de apertura y cierre no válido");
+        }
+        this.apertura = apertura;
+        this.cierre = cierre;
         this.citas = new ArrayList<>();
     }
+
+    public LocalTime getApertura() {
+        return apertura;
+    }
+
+    public LocalTime getCierre() {
+        return cierre;
+    }
+
+    public int getJornada() {
+        return (int) ChronoUnit.MINUTES.between(apertura, cierre);
+    }
+    
 
     // ---------------------------------------------------------------- modificadoras
 
@@ -174,10 +193,9 @@ public class Agenda {
             throw new IllegalArgumentException("No hay cita de " + cliente + " el " + fecha);
         }
         Cita c = citas.get(pos);
-        // Se compara con los minutos que quedan, sin sumar a la hora (LocalTime da la vuelta).
-        long limite = ChronoUnit.MINUTES.between(c.fin(), Cita.CIERRE);
+        long limite = ChronoUnit.MINUTES.between(c.getFin(), cierre);
         if (pos + 1 < citas.size() && citas.get(pos + 1).getFecha().equals(fecha)) {
-            limite = Math.min(limite, ChronoUnit.MINUTES.between(c.fin(), citas.get(pos + 1).getInicio()));
+            limite = Math.min(limite, ChronoUnit.MINUTES.between(c.getFin(), citas.get(pos + 1).getInicio()));
         }
         if (minutos > limite) {
             return false;
@@ -289,12 +307,15 @@ public class Agenda {
      *       ∀ i: citas[i].fecha = fecha ⇒ (fin(citas[i]) ≤ inicio ∨ inicio + duracion ≤ citas[i].inicio).
      */
     public boolean estaLibre(LocalDate fecha, LocalTime inicio, int duracion) {
-        if (!Cita.intervaloValido(fecha, inicio, duracion)) {
+        if (fecha == null || inicio == null || duracion <= 0) {
             return false;
         }
-        LocalTime fin = inicio.plusMinutes(duracion); // sin vuelta: intervaloValido => fin ≤ CIERRE
+        LocalTime fin = inicio.plusMinutes(duracion);
+        if (inicio.isBefore(apertura) || fin.isAfter(cierre)) {
+            return false;
+        }
         for (Cita c : citas) {
-            if (c.getFecha().equals(fecha) && inicio.isBefore(c.fin()) && c.getInicio().isBefore(fin)) {
+            if (c.getFecha().equals(fecha) && inicio.isBefore(c.getFin()) && c.getInicio().isBefore(fin)) {
                 return false;
             }
         }
@@ -342,8 +363,8 @@ public class Agenda {
     public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) {
         exigirFecha(fecha);
         exigirDuracion(duracion);
-        if (duracion > Cita.JORNADA) {
-            throw new IllegalArgumentException("La duración supera la jornada (" + Cita.JORNADA + " min)");
+        if (duracion > getJornada()) {
+            throw new IllegalArgumentException("La duración supera la jornada (" + getJornada() + " min)");
         }
         LocalDate dia = fecha;
         while (buscarHueco(dia, duracion) == null) {
@@ -359,23 +380,20 @@ public class Agenda {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public int tiempoLibre(LocalDate fecha) {
+  public int tiempoLibre(LocalDate fecha) {
         exigirFecha(fecha);
-        if (!Cita.laborable(fecha)) {
-            throw new IllegalArgumentException("El " + fecha + " no es laborable");
-        }
         int ocupado = 0;
         for (Cita c : citas) {
             if (c.getFecha().equals(fecha)) {
                 ocupado += c.getDuracion();
             }
         }
-        return Cita.JORNADA - ocupado;
+        return getJornada() - ocupado;
     }
 
     private static void exigirDuracion(int duracion) {
         if (duracion <= 0) {
-            throw new IllegalArgumentException("La duración debe ser positiva");
+            throw new Exception("La duración debe ser positiva");
         }
     }
 
@@ -384,24 +402,21 @@ public class Agenda {
     /**
      * Comprueba InvAgenda. Se usa en las pruebas; no modifica la agenda.
      */
-    boolean invariante() {
+   boolean invariante() {
         for (int i = 0; i < citas.size(); i++) {
             Cita c = citas.get(i);
-            // 1. InvCita (la clase Cita lo garantiza al crear; se recomprueba por seguridad)
             if (c.getCliente() == null || c.getCliente().isBlank()
-                    || !Cita.intervaloValido(c.getFecha(), c.getInicio(), c.getDuracion())) {
+                    || c.getInicio().isBefore(apertura) || c.getFin().isAfter(cierre)) {
                 return false;
             }
-            // 2. orden cronológico sin solapamientos (pares consecutivos)
             if (i + 1 < citas.size()) {
                 Cita s = citas.get(i + 1);
                 boolean ok = c.getFecha().isBefore(s.getFecha())
-                        || (c.getFecha().equals(s.getFecha()) && !c.fin().isAfter(s.getInicio()));
+                        || (c.getFecha().equals(s.getFecha()) && !c.getFin().isAfter(s.getInicio()));
                 if (!ok) {
                     return false;
                 }
             }
-            // 3. un cliente, como mucho una cita al día
             for (int j = i + 1; j < citas.size(); j++) {
                 Cita d = citas.get(j);
                 if (c.getFecha().equals(d.getFecha()) && mismoCliente(c.getCliente(), d.getCliente())) {
@@ -412,7 +427,6 @@ public class Agenda {
         return true;
     }
 
-    /** Muestra las citas agrupadas por día. */
     @Override
     public String toString() {
         if (citas.isEmpty()) {
@@ -429,7 +443,7 @@ public class Agenda {
                 DayOfWeek d = actual.getDayOfWeek();
                 sb.append(actual).append(" (").append(d).append(")\n");
             }
-            sb.append("  ").append(c.getInicio()).append('-').append(c.fin())
+            sb.append("  ").append(c.getInicio()).append('-').append(c.getFin())
                     .append("  ").append(c.getCliente()).append('\n');
         }
         return sb.toString();

@@ -369,25 +369,26 @@ public LocalTime primerHueco(LocalDate fecha, int d) throws ArgumentoException {
     }
 
     /**
-     * primerDiaConHueco(a, fecha, duracion) → Fecha
-     * Pre: fecha ≠ null ∧ 0 < duracion ≤ JORNADA.
-     * Post: r es la menor fecha f ≥ fecha tal que hayHueco(f, duracion).
-     *       (Siempre existe: la agenda es finita y duracion ≤ JORNADA.)
-     *
-     * @throws IllegalArgumentException si se incumple la precondición
-     */
-    public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) {
-        exigirFecha(fecha);
-        exigirDuracion(duracion);
-        if (duracion > getJornada()) {
-            throw new IllegalArgumentException("La duración supera la jornada (" + getJornada() + " min)");
-        }
-        LocalDate dia = fecha;
-        while (buscarHueco(dia, duracion) == null) {
-            dia = dia.plusDays(1);
-        }
-        return dia;
+ * Busca el primer día con un hueco de la duración indicada,
+ * empezando por la fecha recibida.
+ *
+ * @throws ArgumentoException si la fecha es nula, la duración
+ *         no es positiva o supera la jornada de la agenda
+ */
+public LocalDate primerDiaConHueco(LocalDate fecha, int duracion) throws ArgumentoException {
+    exigirFecha(fecha);
+    exigirDuracion(duracion);
+
+    if (duracion > getJornada()) {
+        throw new ArgumentoException("La duración supera la jornada (" + getJornada() + " min)");
     }
+
+    LocalDate dia = fecha;
+    while (buscarHueco(dia, duracion) == null) {
+        dia = dia.plusDays(1);
+    }
+    return dia;
+}
 
     /**
      * tiempoLibre(a, fecha) → Entero

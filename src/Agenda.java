@@ -304,16 +304,17 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
      *
      * @throws IllegalArgumentException si el cliente es vacío
      */
-    public int numCitasDe(String cliente) {
-        exigirCliente(cliente);
-        int n = 0;
-        for (Cita c : citas) {
-            if (mismoCliente(c.getCliente(), cliente)) {
-                n++;
-            }
+    public int numCitasDe(String cliente) throws ArgumentoException {
+    exigirCliente(cliente);
+
+    int n = 0;
+    for (Cita c : citas) {
+        if (mismoCliente(c.getCliente(), cliente)) {
+            n++;
         }
-        return n;
     }
+    return n;
+}
 
     // ---------------------------------------------------------------- huecos
 

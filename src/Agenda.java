@@ -196,11 +196,11 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
             throw new ArgumentoException("No hay cita de " + cliente + " el " + fecha);
         }
         Cita c = citas.get(pos);
-        Cita retrasada = c.conInicio(c.getInicio().plusMinutes(minutos));
-
-        if (retrasada.getInicio().isBefore(apertura) || retrasada.getFin().isAfter(cierre)) {
-            throw new ArgumentoException("La cita retrasada queda fuera del horario");
+       if (minutos > ChronoUnit.MINUTES.between(c.getFin(), cierre)) {
+        throw new ArgumentoException("La cita retrasada queda fuera del horario");
         }
+    Cita retrasada = c.conInicio(c.getInicio().plusMinutes(minutos));
+      
         if (pos + 1 < citas.size() && citas.get(pos + 1).getFecha().equals(fecha)
                 && retrasada.getFin().isAfter(citas.get(pos + 1).getInicio())) {
             throw new ArgumentoException("La cita retrasada se solapa con la siguiente");

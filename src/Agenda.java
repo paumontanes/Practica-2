@@ -357,17 +357,22 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
     }
 
     /**
-     * primerHueco(a, fecha, duracion) → Hora
-     * Pre: fecha ≠ null ∧ duracion > 0 ∧ hayHueco(fecha, duracion).
-     * Post: r es la menor hora h tal que estaLibre(fecha, h, duracion).
-     *
-     * @throws IllegalArgumentException si se incumple la precondición
-     */
+ * Devuelve la primera hora con un hueco de la duración indicada
+ * en la fecha recibida.
+ *
+ * @throws ArgumentoException si la fecha es nula, la duración
+ *         no es positiva o no existe un hueco de esa duración
+ */
 public LocalTime primerHueco(LocalDate fecha, int d) throws ArgumentoException {
-        exigirFecha(fecha);
-        exigirDuracion(d);
-        return buscarHueco(fecha, d);
+    exigirFecha(fecha);
+    exigirDuracion(d);
+
+    LocalTime hueco = buscarHueco(fecha, d);
+    if (hueco == null) {
+        throw new ArgumentoException("No hay hueco de " + d + " min el " + fecha);
     }
+    return hueco;
+}
 
     /**
  * Busca el primer día con un hueco de la duración indicada,

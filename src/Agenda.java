@@ -129,22 +129,24 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public boolean reservar(String cliente, LocalDate fecha, LocalTime inicio, int duracion) {
-        exigirCliente(cliente);
-        if (!Cita.intervaloValido(fecha, inicio, duracion)) {
-            throw new IllegalArgumentException(
-                    "Intervalo no válido: " + fecha + " " + inicio + " durante " + duracion + " min");
+  public void reservar(Cita c) throws ArgumentoException {
+        if (c == null) {
+            throw new ArgumentoException("La cita no puede ser null");
         }
-        if (!estaLibre(fecha, inicio, duracion) || tieneCita(cliente, fecha)) {
-            return false;
+        if (c.getInicio().isBefore(apertura) || c.getFin().isAfter(cierre)) {
+            throw new ArgumentoException("La cita está fuera del horario de la agenda");
         }
-        Cita nueva = Cita.crear(cliente, fecha, inicio, duracion);
+        if (tieneCita(c.getCliente(), c.getFecha())) {
+            throw new ArgumentoException("El cliente ya tiene una cita ese día");
+        }
+        if (!estaLibre(c.getFecha(), c.getInicio(), c.getDuracion())) {
+            throw new ArgumentoException("El tramo horario ya está ocupado");
+        }
         int pos = 0;
-        while (pos < citas.size() && !esPosterior(citas.get(pos), fecha, inicio)) {
+        while (pos < citas.size() && !esPosterior(citas.get(pos), c.getFecha(), c.getInicio())) {
             pos++;
         }
-        citas.add(pos, nueva);
-        return true;
+        citas.add(pos, c);
     }
 
     /** c empieza estrictamente después de (fecha, inicio). */
@@ -182,26 +184,27 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public boolean retrasar(String cliente, LocalDate fecha, int minutos) {
+  public void retrasar(String cliente, LocalDate fecha, int minutos) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
         if (minutos <= 0) {
-            throw new IllegalArgumentException("Los minutos a retrasar deben ser positivos");
+            throw new ArgumentoException("Los minutos a retrasar deben ser positivos");
         }
         int pos = posicionDe(cliente, fecha);
         if (pos < 0) {
-            throw new IllegalArgumentException("No hay cita de " + cliente + " el " + fecha);
+            throw new ArgumentoException("No hay cita de " + cliente + " el " + fecha);
         }
         Cita c = citas.get(pos);
-        long limite = ChronoUnit.MINUTES.between(c.getFin(), cierre);
-        if (pos + 1 < citas.size() && citas.get(pos + 1).getFecha().equals(fecha)) {
-            limite = Math.min(limite, ChronoUnit.MINUTES.between(c.getFin(), citas.get(pos + 1).getInicio()));
+        Cita retrasada = c.conInicio(c.getInicio().plusMinutes(minutos));
+
+        if (retrasada.getInicio().isBefore(apertura) || retrasada.getFin().isAfter(cierre)) {
+            throw new ArgumentoException("La cita retrasada queda fuera del horario");
         }
-        if (minutos > limite) {
-            return false;
+        if (pos + 1 < citas.size() && citas.get(pos + 1).getFecha().equals(fecha)
+                && retrasada.getFin().isAfter(citas.get(pos + 1).getInicio())) {
+            throw new ArgumentoException("La cita retrasada se solapa con la siguiente");
         }
-        citas.set(pos, Cita.crear(c.getCliente(), fecha, c.getInicio().plusMinutes(minutos), c.getDuracion()));
-        return true;
+        citas.set(pos, retrasada);
     }
 
     // ---------------------------------------------------------------- consultas básicas

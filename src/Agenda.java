@@ -331,10 +331,10 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
             throw new ArgumentoException("La hora no puede ser null");
         }
         exigirDuracion(d);
+       if (h.isBefore(apertura) || d > ChronoUnit.MINUTES.between(h, cierre)) {
+        return false;
+    }
         LocalTime fin = h.plusMinutes(d);
-        if (h.isBefore(apertura) || fin.isAfter(cierre)) {
-            return false;
-        }
         for (Cita c : citas) {
             if (c.getFecha().equals(fecha) && h.isBefore(c.getFin()) && c.getInicio().isBefore(fin)) {
                 return false;

@@ -96,14 +96,14 @@ private static void exigirCliente(String cliente) throws ArgumentoException {
      * Pre: cierto.
      * Post: citas = ⟨⟩ (numCitas = 0). InvAgenda se cumple trivialmente.
      */
-    public Agenda(LocalTime apertura, LocalTime cierre) {
-        if (apertura == null || cierre == null || !apertura.isBefore(cierre)) {
-            throw new IllegalArgumentException("Horario de apertura y cierre no válido");
-        }
-        this.apertura = apertura;
-        this.cierre = cierre;
-        this.citas = new ArrayList<>();
+    public Agenda(LocalTime apertura, LocalTime cierre) throws ArgumentoException {
+    if (apertura == null || cierre == null || !apertura.isBefore(cierre)) {
+        throw new ArgumentoException("Horario de apertura y cierre no válido");
     }
+    this.apertura = apertura;
+    this.cierre = cierre;
+    this.citas = new ArrayList<>();
+}
 
     public LocalTime getApertura() {
         return apertura;

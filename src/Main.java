@@ -21,7 +21,7 @@ public class Main {
         }
     }
 
-    static void esperaExcepcion(String descripcion, Class<? extends Throwable> tipo, OperacionDePrueba codigo) {
+    static void esperaExcepcion(String descripcion, Class<? extends Throwable> tipo, Runnable codigo) {
         total++;
         try {
             codigo.run();
@@ -38,7 +38,7 @@ public class Main {
 
     /** Excepción esperada Y la agenda no ha cambiado. */
     static void esperaExcepcionSinCambios(String descripcion, Agenda a,
-                                          Class<? extends Throwable> tipo, OperacionDePrueba codigo) {
+                                          Class<? extends Throwable> tipo, Runnable codigo) {
         String antes = instantanea(a);
         esperaExcepcion(descripcion, tipo, codigo);
         comprobar(descripcion + " -> la agenda no cambia", antes.equals(instantanea(a)));

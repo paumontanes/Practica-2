@@ -43,17 +43,18 @@ public class Agenda implements Serializable {
         return a != null && a.equalsIgnoreCase(b);
     }
 
-    private static void exigirCliente(String cliente) {
+private static void exigirCliente(String cliente) throws ArgumentoException {
         if (cliente == null || cliente.isBlank()) {
-            throw new IllegalArgumentException("El cliente no puede estar vacío");
+            throw new ArgumentoException("El cliente no puede estar vacío");
         }
     }
 
-    private static void exigirFecha(LocalDate fecha) {
+    private static void exigirFecha(LocalDate fecha) throws ArgumentoException {
         if (fecha == null) {
-            throw new IllegalArgumentException("La fecha no puede ser null");
+            throw new ArgumentoException("La fecha no puede ser null");
         }
     }
+
 
     /** Posición de la cita de (cliente, fecha), o -1 si no existe. */
     private int posicionDe(String cliente, LocalDate fecha) {
@@ -163,12 +164,12 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public void cancelar(String cliente, LocalDate fecha) {
+  public void cancelar(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
         int pos = posicionDe(cliente, fecha);
         if (pos < 0) {
-            throw new IllegalArgumentException("No hay cita de " + cliente + " el " + fecha);
+            throw new ArgumentoException("No hay cita de " + cliente + " el " + fecha);
         }
         citas.remove(pos);
     }
@@ -226,10 +227,9 @@ public class Agenda implements Serializable {
      *
      * @throws IndexOutOfBoundsException si i está fuera de rango
      */
-    public Cita citaEn(int i) {
+   public Cita getCitaEn(int i) throws ArgumentoException {
         if (i < 0 || i >= citas.size()) {
-            throw new IndexOutOfBoundsException(
-                    "Posición " + i + " fuera de rango [0, " + citas.size() + ")");
+            throw new ArgumentoException("Posición " + i + " fuera de rango [0, " + citas.size() + ")");
         }
         return citas.get(i);
     }
@@ -242,11 +242,25 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si fecha es null
      */
-    public List<Cita> citasDel(LocalDate fecha) {
+   public ArrayList<Cita> getCitasDel(LocalDate fecha) throws ArgumentoException {
         exigirFecha(fecha);
-        List<Cita> resultado = new ArrayList<>();
+        ArrayList<Cita> resultado = new ArrayList<>();
         for (Cita c : citas) {
             if (c.getFecha().equals(fecha)) {
+                resultado.add(c);
+            }
+        }
+        return resultado;
+    }
+    public ArrayList<Cita> getCitasEntre(LocalDate desde, LocalDate hasta) throws ArgumentoException {
+        exigirFecha(desde);
+        exigirFecha(hasta);
+        if (desde.isAfter(hasta)) {
+            throw new ArgumentoException("La fecha inicial no puede ser posterior a la final");
+        }
+        ArrayList<Cita> resultado = new ArrayList<>();
+        for (Cita c : citas) {
+            if (!c.getFecha().isBefore(desde) && !c.getFecha().isAfter(hasta)) {
                 resultado.add(c);
             }
         }
@@ -260,7 +274,7 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public boolean tieneCita(String cliente, LocalDate fecha) {
+    public boolean tieneCita(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
         return posicionDe(cliente, fecha) >= 0;
@@ -273,12 +287,12 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public Cita citaDe(String cliente, LocalDate fecha) {
+    public Cita getCitaDe(String cliente, LocalDate fecha) throws ArgumentoException {
         exigirCliente(cliente);
         exigirFecha(fecha);
         int pos = posicionDe(cliente, fecha);
         if (pos < 0) {
-            throw new IllegalArgumentException("No hay cita de " + cliente + " el " + fecha);
+            return null;
         }
         return citas.get(pos);
     }
@@ -309,16 +323,18 @@ public class Agenda implements Serializable {
      * Post: r ⇔ intervaloValido(fecha, inicio, duracion) ∧
      *       ∀ i: citas[i].fecha = fecha ⇒ (fin(citas[i]) ≤ inicio ∨ inicio + duracion ≤ citas[i].inicio).
      */
-    public boolean estaLibre(LocalDate fecha, LocalTime inicio, int duracion) {
-        if (fecha == null || inicio == null || duracion <= 0) {
-            return false;
+    public boolean estaLibre(LocalDate fecha, LocalTime h, int d) throws ArgumentoException {
+        exigirFecha(fecha);
+        if (h == null) {
+            throw new ArgumentoException("La hora no puede ser null");
         }
-        LocalTime fin = inicio.plusMinutes(duracion);
-        if (inicio.isBefore(apertura) || fin.isAfter(cierre)) {
+        exigirDuracion(d);
+        LocalTime fin = h.plusMinutes(d);
+        if (h.isBefore(apertura) || fin.isAfter(cierre)) {
             return false;
         }
         for (Cita c : citas) {
-            if (c.getFecha().equals(fecha) && inicio.isBefore(c.getFin()) && c.getInicio().isBefore(fin)) {
+            if (c.getFecha().equals(fecha) && h.isBefore(c.getFin()) && c.getInicio().isBefore(fin)) {
                 return false;
             }
         }
@@ -332,10 +348,10 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public boolean hayHueco(LocalDate fecha, int duracion) {
+   public boolean hayHueco(LocalDate fecha, int d) throws ArgumentoException {
         exigirFecha(fecha);
-        exigirDuracion(duracion);
-        return buscarHueco(fecha, duracion) != null;
+        exigirDuracion(d);
+        return buscarHueco(fecha, d) != null;
     }
 
     /**
@@ -345,14 +361,10 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-    public LocalTime primerHueco(LocalDate fecha, int duracion) {
+public LocalTime primerHueco(LocalDate fecha, int d) throws ArgumentoException {
         exigirFecha(fecha);
-        exigirDuracion(duracion);
-        LocalTime h = buscarHueco(fecha, duracion);
-        if (h == null) {
-            throw new IllegalArgumentException("No hay hueco de " + duracion + " min el " + fecha);
-        }
-        return h;
+        exigirDuracion(d);
+        return buscarHueco(fecha, d);
     }
 
     /**
@@ -383,7 +395,7 @@ public class Agenda implements Serializable {
      *
      * @throws IllegalArgumentException si se incumple la precondición
      */
-  public int tiempoLibre(LocalDate fecha) {
+ public int getTiempoLibre(LocalDate fecha) throws ArgumentoException {
         exigirFecha(fecha);
         int ocupado = 0;
         for (Cita c : citas) {
@@ -394,9 +406,9 @@ public class Agenda implements Serializable {
         return getJornada() - ocupado;
     }
 
-    private static void exigirDuracion(int duracion) {
+     private static void exigirDuracion(int duracion) throws ArgumentoException {
         if (duracion <= 0) {
-            throw new Exception("La duración debe ser positiva");
+            throw new ArgumentoException("La duración debe ser positiva");
         }
     }
 

@@ -46,6 +46,6 @@ public class PruebaAgenda {
         }
         assert fallo : "Debería lanzar ArgumentoException fuera de horario";
 
-        System.out.println("Todas las pruebas de Agenda pasaron correctamente.");
+        IO.println("Todas las pruebas de Agenda pasaron correctamente.");
     }
 }

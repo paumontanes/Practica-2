@@ -59,7 +59,8 @@ public abstract class CitaVeterinaria extends Cita {
             throws ArgumentoException {
 
         if (ahora == null) {
-            throw new ArgumentoException("La fecha y hora actual no pueden ser nulas");
+            throw new ArgumentoException(
+                    "La fecha y hora actual no pueden ser nulas");
         }
 
         comprobarNormasPropias(ahora);
@@ -90,5 +91,17 @@ public abstract class CitaVeterinaria extends Cita {
         }
 
         return 0;
+    }
+
+    protected final String camposComunes() {
+        return "mascota=" + mascota
+                + ", veterinario=" + veterinario
+                + ", resultado=" + resultado
+                + ", notas=" + notas;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + " " + camposComunes();
     }
 }

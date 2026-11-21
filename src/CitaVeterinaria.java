@@ -68,4 +68,27 @@ public abstract class CitaVeterinaria extends Cita {
     protected void comprobarNormasPropias(LocalDateTime ahora)
             throws ArgumentoException {
     }
+
+    public final void terminar(Resultado resultado, String notas)
+            throws ArgumentoException {
+
+        if (resultado == null) {
+            throw new ArgumentoException("El resultado no puede ser nulo");
+        }
+
+        if (this.resultado != null) {
+            throw new ArgumentoException("La cita ya está terminada");
+        }
+
+        this.resultado = resultado;
+        this.notas = notas;
+    }
+
+    public final int ingreso() {
+        if (resultado == Resultado.ATENDIDA) {
+            return precio();
+        }
+
+        return 0;
+    }
 }

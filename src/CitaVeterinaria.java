@@ -6,4 +6,27 @@ public abstract class CitaVeterinaria extends Cita {
     private Resultado resultado;
     private String notas;
 
+    private final Mascota mascota;
+    private final Veterinario veterinario;
+
+    protected CitaVeterinaria(Mascota mascota, Veterinario veterinario,
+                              LocalDate fecha, LocalTime inicio, int duracion)
+            throws ArgumentoException {
+
+        super(mascota == null ? null : mascota.getPropietario(),
+                fecha, inicio, duracion);
+
+        if (mascota == null) {
+            throw new ArgumentoException("La mascota no puede ser nula");
+        }
+
+        if (veterinario == null) {
+            throw new ArgumentoException("El veterinario no puede ser nulo");
+        }
+
+        this.mascota = mascota;
+        this.veterinario = veterinario;
+        this.resultado = null;
+        this.notas = null;
+    }
 }

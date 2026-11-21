@@ -1,5 +1,6 @@
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 public abstract class CitaVeterinaria extends Cita {
 
@@ -53,4 +54,18 @@ public abstract class CitaVeterinaria extends Cita {
     public abstract Especialidad especialidadRequerida();
 
     public abstract String descripcion();
+
+    protected final void comprobarNormas(LocalDateTime ahora)
+            throws ArgumentoException {
+
+        if (ahora == null) {
+            throw new ArgumentoException("La fecha y hora actual no pueden ser nulas");
+        }
+
+        comprobarNormasPropias(ahora);
+    }
+
+    protected void comprobarNormasPropias(LocalDateTime ahora)
+            throws ArgumentoException {
+    }
 }

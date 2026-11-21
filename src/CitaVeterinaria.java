@@ -14,7 +14,7 @@ public abstract class CitaVeterinaria extends Cita {
                               LocalDate fecha, LocalTime inicio, int duracion)
             throws ArgumentoException {
 
-        super(mascota == null ? null : mascota.getPropietario(),
+        super(mascota == null ? null : mascota.getId(),
                 fecha, inicio, duracion);
 
         if (mascota == null) {
@@ -55,7 +55,7 @@ public abstract class CitaVeterinaria extends Cita {
 
     public abstract String descripcion();
 
-    protected final void comprobarNormas(LocalDateTime ahora)
+    public final void comprobarNormas(LocalDateTime ahora)
             throws ArgumentoException {
 
         if (ahora == null) {
@@ -103,5 +103,22 @@ public abstract class CitaVeterinaria extends Cita {
     @Override
     public String toString() {
         return super.toString() + " " + camposComunes();
+    }
+
+    protected final String texto(String s, String que,
+                                 boolean vacioPermitido)
+            throws ArgumentoException {
+
+        if (s == null) {
+            throw new ArgumentoException(que + " no puede ser nulo");
+        }
+
+        String texto = s.trim();
+
+        if (!vacioPermitido && texto.isEmpty()) {
+            throw new ArgumentoException(que + " no puede estar vacío");
+        }
+
+        return texto;
     }
 }

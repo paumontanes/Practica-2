@@ -1,6 +1,7 @@
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 
 public abstract class CitaVeterinaria extends Cita {
 
@@ -59,8 +60,24 @@ public abstract class CitaVeterinaria extends Cita {
             throws ArgumentoException {
 
         if (ahora == null) {
-            throw new ArgumentoException(
-                    "La fecha y hora actual no pueden ser nulas");
+            throw new ArgumentoException("La fecha actual no puede ser nula");
+        }
+
+        if (getFecha().getDayOfWeek() == DayOfWeek.SUNDAY) {
+            throw new ArgumentoException("No se admiten citas los domingos");
+        }
+
+        if (getInicio().isBefore(LocalTime.of(9, 0))
+                || getFin().isAfter(LocalTime.of(20, 0))) {
+            throw new ArgumentoException("La cita está fuera del horario de la clínica");
+        }
+
+        if (LocalDateTime.of(getFecha(), getInicio()).isBefore(ahora)) {
+            throw new ArgumentoException("No se pueden reservar citas pasadas");
+        }
+
+        if (!veterinario.puedeAtender(especialidadRequerida())) {
+            throw new ArgumentoException("El veterinario no tiene la especialidad requerida");
         }
 
         comprobarNormasPropias(ahora);

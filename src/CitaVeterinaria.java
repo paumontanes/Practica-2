@@ -29,4 +29,20 @@ public abstract class CitaVeterinaria extends Cita {
         this.resultado = null;
         this.notas = null;
     }
+
+    public final Mascota getMascota() {
+        return mascota;
+    }
+
+    public final Veterinario getVeterinario() {
+        return veterinario;
+    }
+
+    public final Resultado getResultado() {
+        return resultado;
+    }
+
+    public final String getNotas() {
+        return notas;
+    }
 }

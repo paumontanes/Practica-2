@@ -5,10 +5,13 @@ import java.io.ObjectOutputStream;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-
+/**
+ * Pruebas de Veterinario (y de ClinicaException). Se ejecuta con main().
+ * No usa assert (que está desactivado por defecto): lanza AssertionError con comprobar().
+ */
 public class PruebasVeterinario {
 
-
+    /** Acción que puede lanzar una excepción comprobada. */
     private interface Accion {
         void ejecutar() throws Exception;
     }
@@ -19,6 +22,7 @@ public class PruebasVeterinario {
         }
     }
 
+    /** Comprueba que la acción lanza exactamente ArgumentoException. */
     private static void esperaArgumentoException(String mensaje, Accion accion) {
         try {
             accion.ejecutar();
@@ -40,6 +44,7 @@ public class PruebasVeterinario {
         System.out.println("Todas las pruebas de Veterinario han pasado.");
     }
 
+    // ------------------------------------------------------------ creación y getters
 
     private static void pruebasCreacion() throws Exception {
         Veterinario laura = new Veterinario("V1", "Laura Martín", Especialidad.GENERAL);
@@ -53,6 +58,8 @@ public class PruebasVeterinario {
         comprobar(pablo.getCodigo().equals("V2"), "el código se recorta");
         comprobar(pablo.getNombre().equals("Pablo Ortega"), "el nombre se recorta");
     }
+
+    // ------------------------------------------------------------ regla de especialidades
 
     private static void pruebasPuedeAtender() throws Exception {
         Veterinario laura = new Veterinario("V1", "Laura Martín", Especialidad.GENERAL);
@@ -75,7 +82,7 @@ public class PruebasVeterinario {
         comprobar(!pablo.puedeAtender(null), "con null no puede atender (Cirugía)");
     }
 
-
+    // ------------------------------------------------------------ agenda propia
 
     private static void pruebasAgenda() throws Exception {
         Veterinario laura = new Veterinario("V1", "Laura Martín", Especialidad.GENERAL);
@@ -88,11 +95,13 @@ public class PruebasVeterinario {
         comprobar(laura.getAgenda().getCierre().equals(LocalTime.of(20, 0)), "cierre 20:00");
         comprobar(laura.getAgenda().getNumCitas() == 0, "la agenda empieza vacía");
 
+        // una cita en la agenda de Laura no aparece en la de Pablo
         LocalDate lunes = LocalDate.of(2026, 10, 19);
         laura.getAgenda().reservar(new CitaPrueba("M001", lunes, LocalTime.of(9, 0), 30));
         comprobar(laura.getAgenda().getNumCitas() == 1, "la cita está en la agenda de Laura");
         comprobar(pablo.getAgenda().getNumCitas() == 0, "la agenda de Pablo sigue vacía");
 
+        // el horario es 9:00-20:00: se admite una cita a las 19:30 y no una a las 8:30
         laura.getAgenda().reservar(new CitaPrueba("M002", lunes, LocalTime.of(19, 30), 30));
         comprobar(laura.getAgenda().getNumCitas() == 2, "cita que termina justo a las 20:00");
         esperaArgumentoException("cita antes de las 9:00",
@@ -101,6 +110,7 @@ public class PruebasVeterinario {
                 () -> laura.getAgenda().reservar(new CitaPrueba("M004", lunes, LocalTime.of(19, 45), 30)));
     }
 
+    // ------------------------------------------------------------ argumentos inválidos
 
     private static void pruebasArgumentosInvalidos() {
         esperaArgumentoException("código null",
@@ -119,6 +129,7 @@ public class PruebasVeterinario {
                 () -> new Veterinario("V9", "x", null));
     }
 
+    // ------------------------------------------------------------ Serializable
 
     private static void pruebasSerializacion() throws Exception {
         Veterinario original = new Veterinario("V2", "Pablo Ortega", Especialidad.CIRUGIA);
@@ -143,13 +154,16 @@ public class PruebasVeterinario {
         comprobar(copia.getAgenda().tieneCita("M001", martes), "la cita de M001 sigue ahí");
     }
 
+    // ------------------------------------------------------------ ClinicaException
+
     private static void pruebasClinicaException() {
         ClinicaException e = new ClinicaException("La clínica cierra los domingos");
         comprobar(e.getMessage().equals("La clínica cierra los domingos"), "mensaje de ClinicaException");
-   
+        // Que es comprobada (no RuntimeException) lo garantiza el compilador:
+        // un método que la lance debe declararla con throws.
     }
 
-  
+    /** Subclase mínima de Cita, solo para llenar la agenda en las pruebas. */
     private static class CitaPrueba extends Cita {
         private static final long serialVersionUID = 1L;
 

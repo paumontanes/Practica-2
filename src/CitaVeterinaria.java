@@ -32,6 +32,23 @@ public abstract class CitaVeterinaria extends Cita {
         this.notas = null;
     }
 
+    protected final String texto(String s, String que,
+                                 boolean vacioPermitido)
+            throws ArgumentoException {
+
+        if (s == null) {
+            throw new ArgumentoException(que + " no puede ser nulo");
+        }
+
+        String texto = s.trim();
+
+        if (!vacioPermitido && texto.isEmpty()) {
+            throw new ArgumentoException(que + " no puede estar vacío");
+        }
+
+        return texto;
+    }
+
     public final Mascota getMascota() {
         return mascota;
     }
@@ -69,7 +86,7 @@ public abstract class CitaVeterinaria extends Cita {
 
         if (getInicio().isBefore(LocalTime.of(9, 0))
                 || getFin().isAfter(LocalTime.of(20, 0))) {
-            throw new ArgumentoException("La cita está fuera del horario de la clínica");
+            throw new ArgumentoException("La cita está fuera del horario");
         }
 
         if (LocalDateTime.of(getFecha(), getInicio()).isBefore(ahora)) {
@@ -77,7 +94,7 @@ public abstract class CitaVeterinaria extends Cita {
         }
 
         if (!veterinario.puedeAtender(especialidadRequerida())) {
-            throw new ArgumentoException("El veterinario no tiene la especialidad requerida");
+            throw new ArgumentoException("Especialidad no válida");
         }
 
         comprobarNormasPropias(ahora);
@@ -120,22 +137,5 @@ public abstract class CitaVeterinaria extends Cita {
     @Override
     public String toString() {
         return super.toString() + " " + camposComunes();
-    }
-
-    protected final String texto(String s, String que,
-                                 boolean vacioPermitido)
-            throws ArgumentoException {
-
-        if (s == null) {
-            throw new ArgumentoException(que + " no puede ser nulo");
-        }
-
-        String texto = s.trim();
-
-        if (!vacioPermitido && texto.isEmpty()) {
-            throw new ArgumentoException(que + " no puede estar vacío");
-        }
-
-        return texto;
     }
 }

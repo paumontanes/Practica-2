@@ -3,4 +3,7 @@ import java.time.LocalTime;
 
 public abstract class CitaVeterinaria extends Cita {
 
+    private Resultado resultado;
+    private String notas;
+
 }

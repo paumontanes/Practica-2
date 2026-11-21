@@ -45,4 +45,12 @@ public abstract class CitaVeterinaria extends Cita {
     public final String getNotas() {
         return notas;
     }
+
+    public abstract int precio();
+
+    public abstract String getTipo();
+
+    public abstract Especialidad especialidadRequerida();
+
+    public abstract String descripcion();
 }

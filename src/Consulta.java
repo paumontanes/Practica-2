@@ -20,5 +20,35 @@ public class Consulta extends CitaVeterinaria {
         }
         return mascota.getEspecie().getDuracionConsulta();
     }
+    public String getMotivo() {
+        return motivo;
+    }
+
+    @Override
+    public int precio() {
+        return PRECIO;
+    }
+
+    @Override
+    public String getTipo() {
+        return "Consulta";
+    }
+
+    @Override
+    public Especialidad especialidadRequerida() {
+        return getMascota().getEspecie().getEspecialidad();
+    }
+
+    @Override
+    public String descripcion() {
+        return "Consulta de " + getMascota().getNombre() + ": " + motivo;
+    }
+
+    @Override
+    public Consulta conInicio(LocalTime nuevoInicio) throws ArgumentoException {
+        return new Consulta(getMascota(), getVeterinario(),
+                getFecha(), nuevoInicio, motivo);
+    }
+
 }
 

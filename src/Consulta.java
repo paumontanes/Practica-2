@@ -25,7 +25,7 @@ public class Consulta extends CitaVeterinaria {
     }
 
     @Override
-    public int precio() {
+    public double precio() {
         return PRECIO;
     }
 

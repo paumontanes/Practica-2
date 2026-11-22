@@ -25,20 +25,12 @@ public class PruebaAgenda {
 
         agenda.reservar(c1);
         agenda.reservar(c2);
+
+        // La agenda abre todos los días: el cierre de los domingos es una norma de la
+        // clínica (CitaVeterinaria.comprobarNormas), no de Cita ni de Agenda. Por eso
+        // aquí una cita en domingo se reserva sin error.
         agenda.reservar(cDom);
-
-        /**
-         * Comprueba que no se pueden crear citas en domingo.
-         */
-        boolean falloDomingo = false;
-
-        try {
-            new CitaPrueba("M003", domingo, LocalTime.of(11, 0), 30);
-        } catch (ArgumentoException e) {
-            falloDomingo = true;
-        }
-
-        assert falloDomingo : "Debería rechazar citas en domingo";
+        assert agenda.tieneCita("M003", domingo) : "La agenda debe admitir citas en domingo";
 
         assert agenda.invariante() : "Fallo en invariante";
         assert agenda.getNumCitas() == 3 : "Error en getNumCitas";

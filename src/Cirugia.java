@@ -33,7 +33,7 @@ public class Cirugia extends CitaVeterinaria {
     }
 
     @Override
-    public int precio() {
+    public double precio() {
         return PRECIO_HORA * getDuracion() / 60
                 + ANESTESIA_POR_KG * getMascota().getPeso() / 1000;
     }

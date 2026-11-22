@@ -20,11 +20,6 @@ public class Cirugia extends CitaVeterinaria {
 
         super(mascota, veterinario, fecha, inicio, duracion);
 
-        if (duracion < DURACION_MINIMA || duracion > DURACION_MAXIMA
-                || duracion % 30 != 0) {
-            throw new ArgumentoException("Duración de cirugía no válida");
-        }
-
         this.intervencion = texto(intervencion, "La intervención", false);
     }
 
@@ -37,7 +32,6 @@ public class Cirugia extends CitaVeterinaria {
         return PRECIO_HORA * getDuracion() / 60
                 + ANESTESIA_POR_KG * getMascota().getPeso() / 1000;
     }
-
 
     @Override
     public String getTipo() {
@@ -60,6 +54,12 @@ public class Cirugia extends CitaVeterinaria {
             throw new ClinicaException("La cirugía debe programarse al menos el día anterior");
         }
 
+        if (getDuracion() < DURACION_MINIMA || getDuracion() > DURACION_MAXIMA
+                || getDuracion() % 30 != 0) {
+            throw new ClinicaException(
+                    "La cirugía debe durar de 30 a 240 minutos en tramos de 30");
+        }
+
         if (getDuracion() > ChronoUnit.MINUTES.between(getInicio(), FIN_MANANA)) {
             throw new ClinicaException("La cirugía debe terminar como muy tarde a las 14:00");
         }
@@ -70,10 +70,4 @@ public class Cirugia extends CitaVeterinaria {
         return new Cirugia(getMascota(), getVeterinario(),
                 getFecha(), nuevoInicio, getDuracion(), intervencion);
     }
-
-
-
-
-
 }
-

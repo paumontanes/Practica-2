@@ -6,20 +6,19 @@ public class PruebasPolimorfismo {
 
     public static void main(String[] args) throws Exception {
 
+        Mascota mascota = new Mascota("M001", "Toby", "Ana García",
+                Especie.PERRO, LocalDate.of(2020, 3, 15), 28000);
 
-    Mascota mascota = new Mascota("M001", "Toby", "Ana García",
-            Especie.PERRO, LocalDate.of(2020, 3, 15), 28000);
+        Veterinario veterinario = new Veterinario("V1", "Laura Martín",
+                Especialidad.CIRUGIA);
 
-    Veterinario veterinario = new Veterinario("V1", "Laura Martín",
-            Especialidad.CIRUGIA);
+        LocalDate fecha = LocalDate.of(2026, 12, 1);
 
-    LocalDate fecha = LocalDate.of(2026, 12, 1);
+        CitaVeterinaria consulta = new Consulta(mascota, veterinario,
+                fecha, LocalTime.of(10, 0), "Revisión");
 
-    CitaVeterinaria consulta = new Consulta(mascota, veterinario,
-            fecha, LocalTime.of(10, 0), "Revisión");
-
-    CitaVeterinaria cirugia = new Cirugia(mascota, veterinario,
-            fecha, LocalTime.of(11, 0), 60, "Esterilización");
+        CitaVeterinaria cirugia = new Cirugia(mascota, veterinario,
+                fecha, LocalTime.of(11, 0), 60, "Esterilización");
 
         System.out.println(consulta.getTipo() + ": " + consulta.precio());
         System.out.println(cirugia.getTipo() + ": " + cirugia.precio());
@@ -87,9 +86,12 @@ public class PruebasPolimorfismo {
         error = false;
 
         try {
-            new Cirugia(mascota, veterinario, fecha,
+            CitaVeterinaria cirugiaLarga = new Cirugia(mascota, veterinario, fecha,
                     LocalTime.of(10, 0), 45, "Operación");
-        } catch (ArgumentoException e) {
+
+            cirugiaLarga.comprobarNormas(ahora);
+
+        } catch (ClinicaException e) {
             error = true;
         }
 
@@ -98,10 +100,6 @@ public class PruebasPolimorfismo {
         }
 
         System.out.println("Prueba de duración correcta");
-
-
-
-
-}
+    }
 }
 

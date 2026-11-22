@@ -1,40 +1,31 @@
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.LocalDateTime;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * Clase abstracta que representa una cita veterinaria.
- * Extiende la clase Cita y añade información sobre la mascota,
- * el veterinario, el resultado y las notas de la consulta.
  */
 public abstract class CitaVeterinaria extends Cita {
 
-    /** Resultado final de la cita. */
     private Resultado resultado;
-
-    /** Observaciones realizadas por el veterinario. */
     private String notas;
-
-    /** Mascota asociada a la cita. */
     private final Mascota mascota;
-
-    /** Veterinario responsable de la cita. */
     private final Veterinario veterinario;
 
     /**
-     * Construye una cita veterinaria.
+     * Constructor de CitaVeterinaria.
      *
      * @param mascota mascota asociada a la cita
-     * @param veterinario veterinario responsable
+     * @param veterinario veterinario encargado de la cita
      * @param fecha fecha de la cita
-     * @param inicio hora de inicio
-     * @param duracion duración de la cita
-     * @throws ArgumentoException si los argumentos no son válidos
+     * @param inicio hora de inicio de la cita
+     * @param duracion duración de la cita en minutos
+     * @throws ArgumentoException si algún argumento no es válido
      */
     protected CitaVeterinaria(Mascota mascota, Veterinario veterinario,
-                              LocalDate fecha, LocalTime inicio, int duracion)
-            throws ArgumentoException {
+                              LocalDate fecha, LocalTime inicio,
+                              int duracion) throws ArgumentoException {
 
         super(mascota == null ? null : mascota.getId(),
                 fecha, inicio, duracion);
@@ -50,22 +41,22 @@ public abstract class CitaVeterinaria extends Cita {
         this.mascota = mascota;
         this.veterinario = veterinario;
         this.resultado = null;
-        this.notas = null;
+        this.notas = "";
     }
 
     /**
      * Devuelve la mascota asociada a la cita.
      *
-     * @return mascota de la cita
+     * @return mascota
      */
     public final Mascota getMascota() {
         return mascota;
     }
 
     /**
-     * Devuelve el veterinario responsable.
+     * Devuelve el veterinario asociado a la cita.
      *
-     * @return veterinario de la cita
+     * @return veterinario
      */
     public final Veterinario getVeterinario() {
         return veterinario;
@@ -74,7 +65,7 @@ public abstract class CitaVeterinaria extends Cita {
     /**
      * Devuelve el resultado de la cita.
      *
-     * @return resultado de la cita, o null si no ha terminado
+     * @return resultado
      */
     public final Resultado getResultado() {
         return resultado;
@@ -83,18 +74,18 @@ public abstract class CitaVeterinaria extends Cita {
     /**
      * Devuelve las notas de la cita.
      *
-     * @return observaciones del veterinario
+     * @return notas
      */
     public final String getNotas() {
         return notas;
     }
 
     /**
-     * Calcula el precio de la cita.
+     * Devuelve el precio de la cita.
      *
-     * @return precio de la cita
+     * @return precio
      */
-    public abstract int precio();
+    public abstract double precio();
 
     /**
      * Devuelve el tipo de cita.
@@ -104,7 +95,7 @@ public abstract class CitaVeterinaria extends Cita {
     public abstract String getTipo();
 
     /**
-     * Devuelve la especialidad necesaria para atender la cita.
+     * Devuelve la especialidad requerida para la cita.
      *
      * @return especialidad requerida
      */
@@ -113,7 +104,7 @@ public abstract class CitaVeterinaria extends Cita {
     /**
      * Devuelve una descripción de la cita.
      *
-     * @return descripción de la cita
+     * @return descripción
      */
     public abstract String descripcion();
 
@@ -134,8 +125,17 @@ public abstract class CitaVeterinaria extends Cita {
             throw new ArgumentoException("No se admiten citas los domingos");
         }
 
+        // Calculamos la fecha y hora reales de finalización.
+        // Así evitamos problemas cuando la cita cruza la medianoche.
+        LocalDateTime finCita = LocalDateTime.of(getFecha(), getInicio())
+                .plusMinutes(getDuracion());
+
+        // Comprobamos que la cita comienza dentro del horario
+        // y que termina antes o a las 20:00, sin cruzar de día.
         if (getInicio().isBefore(LocalTime.of(9, 0))
-                || getFin().isAfter(LocalTime.of(20, 0))) {
+                || finCita.toLocalTime().isAfter(LocalTime.of(20, 0))
+                || !finCita.toLocalDate().equals(getFecha())) {
+
             throw new ArgumentoException("La cita está fuera del horario");
         }
 
@@ -143,7 +143,8 @@ public abstract class CitaVeterinaria extends Cita {
             throw new ArgumentoException("No se pueden reservar citas pasadas");
         }
 
-        if (!veterinario.puedeAtender(especialidadRequerida())) {
+        if (especialidadRequerida() == null
+                || !veterinario.puedeAtender(especialidadRequerida())) {
             throw new ArgumentoException("Especialidad no válida");
         }
 
@@ -151,22 +152,22 @@ public abstract class CitaVeterinaria extends Cita {
     }
 
     /**
-     * Comprueba las normas específicas de cada tipo de cita.
+     * Comprueba las normas particulares de cada tipo de cita.
      *
      * @param ahora fecha y hora actual
-     * @throws ArgumentoException si no se cumplen las normas específicas
+     * @throws ArgumentoException si no se cumplen las normas particulares
      */
     protected void comprobarNormasPropias(LocalDateTime ahora)
             throws ArgumentoException {
     }
 
     /**
-     * Finaliza la cita y registra su resultado y observaciones.
+     * Finaliza la cita indicando el resultado y las notas.
      *
-     * @param resultado resultado final de la cita
-     * @param notas observaciones del veterinario
-     * @throws ArgumentoException si el resultado es nulo
-     * o la cita ya está terminada
+     * @param resultado resultado de la cita
+     * @param notas notas asociadas a la cita
+     * @throws ArgumentoException si el resultado no es válido
+     * o la cita ya ha sido finalizada
      */
     public final void terminar(Resultado resultado, String notas)
             throws ArgumentoException {
@@ -176,19 +177,19 @@ public abstract class CitaVeterinaria extends Cita {
         }
 
         if (this.resultado != null) {
-            throw new ArgumentoException("La cita ya está terminada");
+            throw new ArgumentoException("La cita ya ha sido finalizada");
         }
 
         this.resultado = resultado;
-        this.notas = notas;
+        this.notas = texto(notas, "Las notas", true);
     }
 
     /**
      * Calcula el ingreso generado por la cita.
      *
-     * @return precio si ha sido atendida, cero en otro caso
+     * @return ingreso generado
      */
-    public final int ingreso() {
+    public final double ingreso() {
         if (resultado == Resultado.ATENDIDA) {
             return precio();
         }
@@ -197,22 +198,20 @@ public abstract class CitaVeterinaria extends Cita {
     }
 
     /**
-     * Construye una cadena con los atributos comunes
-     * de las citas veterinarias.
+     * Devuelve los campos comunes de la cita veterinaria.
      *
-     * @return representación de los atributos comunes
+     * @return campos comunes
      */
     protected final String camposComunes() {
-        return "mascota=" + mascota
-                + ", veterinario=" + veterinario
-                + ", resultado=" + resultado
-                + ", notas=" + notas;
+        return "Mascota: " + mascota + ", Veterinario: " + veterinario
+                + ", Tipo: " + getTipo() + ", Resultado: " + resultado
+                + ", Notas: " + notas;
     }
 
     /**
-     * Devuelve la representación textual de la cita veterinaria.
+     * Devuelve una representación textual de la cita.
      *
-     * @return información de la cita
+     * @return representación textual
      */
     @Override
     public String toString() {
@@ -220,28 +219,28 @@ public abstract class CitaVeterinaria extends Cita {
     }
 
     /**
-     * Comprueba y normaliza una cadena de texto.
+     * Comprueba y normaliza un texto.
      *
-     * @param s cadena que se quiere comprobar
-     * @param que nombre del argumento
-     * @param vacioPermitido indica si se permiten cadenas vacías
-     * @return cadena sin espacios innecesarios
-     * @throws ArgumentoException si la cadena no es válida
+     * @param s texto a comprobar
+     * @param que descripción del texto
+     * @param vacioPermitido indica si se permite el texto vacío
+     * @return texto normalizado
+     * @throws ArgumentoException si el texto no es válido
      */
-    protected final String texto(String s, String que,
-                                 boolean vacioPermitido)
+    protected static String texto(String s, String que,
+                                  boolean vacioPermitido)
             throws ArgumentoException {
 
         if (s == null) {
             throw new ArgumentoException(que + " no puede ser nulo");
         }
 
-        String texto = s.trim();
+        s = s.trim();
 
-        if (!vacioPermitido && texto.isEmpty()) {
+        if (!vacioPermitido && s.isEmpty()) {
             throw new ArgumentoException(que + " no puede estar vacío");
         }
 
-        return texto;
+        return s;
     }
 }

@@ -115,37 +115,33 @@ public abstract class CitaVeterinaria extends Cita {
      * @throws ArgumentoException si no se cumplen las normas
      */
     public final void comprobarNormas(LocalDateTime ahora)
-            throws ArgumentoException {
+            throws ArgumentoException, ClinicaException {
 
         if (ahora == null) {
-            throw new ArgumentoException("La fecha actual no puede ser nula");
+            throw new ArgumentoException("La fecha actual no puede ser nula");   // este NO cambia
         }
 
         if (getFecha().getDayOfWeek() == DayOfWeek.SUNDAY) {
-            throw new ArgumentoException("No se admiten citas los domingos");
+            throw new ClinicaException("No se admiten citas los domingos");      // cambia
         }
 
-        // Calculamos la fecha y hora reales de finalización.
-        // Así evitamos problemas cuando la cita cruza la medianoche.
         LocalDateTime finCita = LocalDateTime.of(getFecha(), getInicio())
                 .plusMinutes(getDuracion());
 
-        // Comprobamos que la cita comienza dentro del horario
-        // y que termina antes o a las 20:00, sin cruzar de día.
         if (getInicio().isBefore(LocalTime.of(9, 0))
                 || finCita.toLocalTime().isAfter(LocalTime.of(20, 0))
                 || !finCita.toLocalDate().equals(getFecha())) {
 
-            throw new ArgumentoException("La cita está fuera del horario");
+            throw new ClinicaException("La cita está fuera del horario");        // cambia
         }
 
         if (LocalDateTime.of(getFecha(), getInicio()).isBefore(ahora)) {
-            throw new ArgumentoException("No se pueden reservar citas pasadas");
+            throw new ClinicaException("No se pueden reservar citas pasadas");   // cambia
         }
 
         if (especialidadRequerida() == null
                 || !veterinario.puedeAtender(especialidadRequerida())) {
-            throw new ArgumentoException("Especialidad no válida");
+            throw new ClinicaException("Especialidad no válida");                // cambia
         }
 
         comprobarNormasPropias(ahora);
@@ -158,7 +154,7 @@ public abstract class CitaVeterinaria extends Cita {
      * @throws ArgumentoException si no se cumplen las normas particulares
      */
     protected void comprobarNormasPropias(LocalDateTime ahora)
-            throws ArgumentoException {
+            throws ClinicaException {
     }
 
     /**

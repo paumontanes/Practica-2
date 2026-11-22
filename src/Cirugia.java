@@ -55,13 +55,13 @@ public class Cirugia extends CitaVeterinaria {
     }
 
     @Override
-    protected void comprobarNormasPropias(LocalDateTime ahora) throws ArgumentoException {
+    protected void comprobarNormasPropias(LocalDateTime ahora) throws ClinicaException {
         if (!getFecha().isAfter(ahora.toLocalDate())) {
-            throw new ArgumentoException("La cirugía debe programarse al menos el día anterior");
+            throw new ClinicaException("La cirugía debe programarse al menos el día anterior");
         }
 
         if (getDuracion() > ChronoUnit.MINUTES.between(getInicio(), FIN_MANANA)) {
-            throw new ArgumentoException("La cirugía debe terminar antes de las 14:00");
+            throw new ClinicaException("La cirugía debe terminar como muy tarde a las 14:00");
         }
     }
 

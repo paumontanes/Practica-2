@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class PruebasPolimorfismo {
 
-    public static void main(String[] args) throws ArgumentoException {
+    public static void main(String[] args) throws Exception {
 
 
     Mascota mascota = new Mascota("M001", "Toby", "Ana García",
@@ -60,7 +60,7 @@ public class PruebasPolimorfismo {
 
             cirugiaInvalida.comprobarNormas(ahora);
 
-        } catch (ArgumentoException e) {
+        } catch (ClinicaException e) {
             error = true;
         }
 
@@ -74,7 +74,7 @@ public class PruebasPolimorfismo {
 
         try {
             cirugia.comprobarNormas(LocalDateTime.of(2026, 12, 1, 8, 0));
-        } catch (ArgumentoException e) {
+        } catch (ClinicaException e) {
             error = true;
         }
 

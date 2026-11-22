@@ -85,7 +85,7 @@ public abstract class CitaVeterinaria extends Cita {
      *
      * @return precio
      */
-    public abstract double precio();
+    public abstract int precio();
 
     /**
      * Devuelve el tipo de cita.
@@ -189,7 +189,7 @@ public abstract class CitaVeterinaria extends Cita {
      *
      * @return ingreso generado
      */
-    public final double ingreso() {
+    public final int ingreso() {
         if (resultado == Resultado.ATENDIDA) {
             return precio();
         }
